@@ -1,0 +1,362 @@
+---
+title: "Informe de Análisis Descriptivo de Datos EmpresaB&C"
+author: "Paula Andrea López Arango"
+date: "2023-08-10"
+output: html_document
+---
+
+# Introducción
+
+Este informe presenta el análisis descriptivo de la base de datos "vivienda_faltantes", propiedad de la empresa B&C. Para llevar a cabo este estudio se empleó software R, herramienta estadística líder en el ámbito del análisis de datos. El proyecto se enfoca en tres fases, la primera comprende un preprocesamiento y organización de la data, como preparación para el análisis posterior. En la segunda fase, se realiza un análisis univariado, explorando las variables individualmente para entender su distribución y características principales. Finalmente, en la tercera etapa se realiza cruce de variables con el objetivo de identificar tendencias y patrones en los datos que pueden ser de ayuda en la toma de decisiones de la empresa B&C.
+
+# Objetivos
+
+1.  Realizar análisis descriptivo de datos.
+
+2.  Identificar las características de las viviendas más vendidas en Cali.
+
+3.  Identificar la zona de mayor popularidad y posible desarrollo.
+
+4.  Identificar las áreas con mayor nivel socioeconómico.
+
+5.  Identificar patrones en los datos que puedan ser relevante para empresa B&C.
+
+# Métodos
+
+El análisis de datos se realizó en 3 fases:
+
+**Fase I. Pre procesamiento de data:** cargue de información, revisión, descripción de tipo de data, estandarización y visualización de variables.
+
+**Fase II. Análisis univariado de las variables:**
+
+-   Cálculo de indicadores de centro: media, mediana, media truncada
+-   Cálculo de indicadores de dispersión: rango, desviación estándar, desviación absoluta
+-   Cálculo de indicadores de forma: curtosis, asimetría
+-   Cálculo de Indicador de posición: cuartiles
+-   Visualización grafica de indicadores
+
+**Fase III. Cruce de variables**: identificación de tendencia e información relevante para la compañía.
+
+# Resultados
+
+```{r setup, include = FALSE}
+# Cargar el paquete necesario
+library(paqueteMET) 
+data(vivienda_faltantes)
+
+# instalación de libreria
+library(dplyr)
+library(moments)
+library(naniar)
+library(ggplot2)
+library(tidyverse)
+```
+
+### Fase I. Pre procesamiento de data
+
+La base de datos "vivienda_faltantes" está compuesta por 8330 datos y 13 variables.
+
+```{r echo=FALSE}
+#Revision de variables presente en la base de datos
+columnas <- names(vivienda_faltantes)
+columnas
+```
+
+Hay 4279 datos en valor NA siendo las variables piso y parqueadero con mayor número de datos faltantes.
+
+```{r echo=FALSE, fig.width=4, fig.height=3}
+# Calcular el número de valores NA en cada variable
+gg_miss_var(vivienda_faltantes)
+na_count <- colSums(is.na(vivienda_faltantes))
+na_count
+```
+
+Las variables presentan las siguientes subdivisiones:
+
+```{r echo=FALSE}
+# identificar la subdivisión de las variables zona, piso, estrato, parqueadero, baños, habitaciones.
+Uzona <- unique(vivienda_faltantes$zona) 
+Upiso <- unique(vivienda_faltantes$piso) 
+Uestrato <- unique(vivienda_faltantes$estrato) 
+Uparquead <- unique(vivienda_faltantes$parquea) 
+Ubanios <- unique(vivienda_faltantes$banios) 
+Ubanios <- unique(vivienda_faltantes$banios)
+Utipo <- unique(vivienda_faltantes$tipo)
+
+Subdiv <- list(Uzona = Uzona, Upiso = Upiso, Uestrato = Uestrato, Uparquead = Uparquead, Ubanios = Ubanios, Utipo = Utipo)
+Subdiv
+```
+
+La variable tipo requirió estandarización para corregir errores de escritura.
+
+```{r echo=FALSE}
+# Estandarizar los valores de la variable "tipo"
+vivienda_faltantes <- vivienda_faltantes %>% mutate(tipo = recode(tipo, "Apartamento" = "apartamento", "APARTAMENTO" = "apartamento", "apto" = "apartamento", "Casa" = "casa", "casa" = "casa", "CASA" = "casa", "NA" = "NA"))
+
+# Verificar los cambios de la variable tipo
+unique(vivienda_faltantes$tipo)
+```
+
+### Visualización de variables 
+
+```{r echo=FALSE, fig.width=6, fig.height=4}
+#grafico pie de variable tipo
+data_pie <- round(table(vivienda_faltantes$tipo) %>% prop.table()*100, 2) 
+etiquetas_pie <- paste(vivienda_faltantes$tipo,"(", table(vivienda_faltantes$tipo), "-", data_pie, "%", ")" )
+pie(data_pie, label=etiquetas_pie)
+
+#Grafico de barra variable zona
+ggplot(vivienda_faltantes, aes(x = zona)) + geom_bar(fill = "orange", color = "black", alpha = 0.7) + geom_text(stat='count', aes(label=after_stat(count)), vjust=-0.5) + theme_minimal() + labs(title = "Número de viviendas por zona", x = "Zona", y = "Número de viviendas") +
+  theme(legend.position = "none")
+```
+
+```{r echo=FALSE, fig.width=4, fig.height=3}
+#histograma de piso
+ggplot(vivienda_faltantes, aes(x = piso)) + geom_histogram(binwidth = 1, fill = "lightgreen", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Histograma distribución de piso", x = "Piso", y = "Viviendas")
+
+#histograma de baños
+ggplot(vivienda_faltantes, aes(x = banios)) + geom_histogram(binwidth = 1, fill = "gray", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Histograma distribución de baños", x = "Baños", y = "Viviendas")
+
+#histograma de habitacion
+ggplot(vivienda_faltantes, aes(x = habitac)) + geom_histogram(binwidth = 1, fill = "darkblue", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Histograma distribución de habitación", x = "Habitacion", y = "Viviendas")
+
+# Boxplot para 'preciom'
+ggplot(vivienda_faltantes, aes(y = preciom)) + geom_boxplot(fill = "salmon", color = "black", na.rm = TRUE) + labs(title = "Boxplot variable preciom", y = "Precio")
+
+# Boxplot para 'areaconst'
+ggplot(vivienda_faltantes, aes(y = areaconst)) + geom_boxplot(fill = "green", color = "black", na.rm = TRUE) + labs(title = "Boxplot variable area construida", y = "Area construida")
+
+# Barras para 'parqueadero'
+ggplot(vivienda_faltantes, aes(x = parquea)) + geom_bar(fill = "purple", color = "black", alpha = 0.7, na.rm = TRUE) + theme_minimal() + labs(title = "Número parquederos por vivienda", x = "Parqueadero", y = "Número de viviendas")
+```
+
+
+### **Fase II. Analisis univariado de varaible**
+
+Para las variables numéricas: piso, estrato, preciom, areaconst, parquea, banios, habitac, se calculan:
+
+-   Indicadores de centro: media, mediana, media truncada
+-   Indicadores de dispersión: rango, desviación estándar, desviación absoluta
+-   Indicadores de forma: curtosis, asimetría.
+
+```{r echo=FALSE}
+# Indicadpres de centro, dispersion y forma
+Estad_descrip <- lapply(vivienda_faltantes[, c("piso", "estrato", "preciom", "areaconst", "parquea", "banios", "habitac")], psych::describe)
+Estad_descrip
+```
+
+-   Indicador de posición: caurtiles
+
+```{r echo=FALSE}
+#Indicador de posición:  caurtiles
+Cuartiles <- lapply(vivienda_faltantes[c("piso", "estrato", "preciom", "areaconst", "parquea", "banios", "habitac")], quantile, probs = c(0.25, 0.5, 0.75), type = 6, na.rm = TRUE) 
+Cuartiles
+
+```
+
+Comentarios sobre los restultados del calculo de indicadores.
+
+**"piso"**
+
+-   La distribución es asimétrica hacia la derecha (skew = 1.28), indicando que hay algunas viviendas con un número muy alto de pisos.
+
+**"estrato"**
+
+-   El estrato medio es de 4.63, la mediana de 5, la distribución tiene una leve asimetría negativa (skew = -0.18), lo que confirma que hay más datos agrupados en los estratos superiores.
+
+**"preciom"**
+
+-   Posee una desviación estandar alta (329.02) para el precio medio es de 434.24.
+
+-   La mediana es de 330, lo que indica que el 50% de las viviendas tienen un precio inferior a 330.
+
+-   La distribución es asimétrica hacia la derecha (skew = 1.85), lo que sugiere que hay algunas viviendas con precios muy altos que elevan la media.
+
+**"areaconst"**
+
+-   El área media de construcción es de 174.99, con una desviación estándar de 142.95.
+
+-   La distribución es fuertemente asimétrica hacia la derecha (skew = 2.69), lo que sugiere que hay algunas viviendas con áreas de construcción muy grandes.
+
+-   La curtosis es alta, lo que indica una distribución con extremos.
+
+**"parquea"**
+
+-   La mitad de las viviendas tienen 2 espacios de estacionamiento.
+-   No hay cambio entre el 50% y el 75% de cuartiles, lo que sugiere que la mayoría de las viviendas tienen 2 espacios de estacionamiento.
+
+**"habitac"**
+
+-   La distribución es asimétrica hacia la derecha, lo que sugiere que hay algunas viviendas con un número muy alto de habitaciones.
+
+### **Fase III. Cruce de variables**:
+
+
+```{r echo=FALSE, fig.width=3, fig.height=3}
+# cruce entre varaibles precio y  tipo 
+df_1 <-vivienda_faltantes %>% group_by(tipo) %>% summarise(mean_price = mean(preciom, na.rm = TRUE)) %>% arrange(-mean_price)
+df_1
+# Gráfico 
+ggplot(df_1, aes(x = reorder(tipo, -mean_price), y = mean_price)) + geom_bar(stat = "identity", fill = "darkblue", color = "black", alpha = 0.7, na.rm = TRUE) +
+  labs(title = "Promedio de precio por tipo de vivienda", x = "Tipo", y = "Promedio de precio") + theme_minimal()
+
+# cruce entre varaibles tipo y area construida
+df_4 <- vivienda_faltantes %>% group_by(tipo) %>% summarise(mean_areaconst= mean(areaconst, na.rm = TRUE)) %>% arrange(-mean_areaconst)
+df_4
+# Gráfico
+ggplot(df_4, aes(x = reorder(tipo, -mean_areaconst), y = mean_areaconst)) + geom_bar(stat = "identity", fill = "purple", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Promedio de area construida por tipo de vivienda", x = "Tipo de vivienda", y = "Media de area construida") + theme_minimal()
+```
+
+
+```{r echo=FALSE, fig.width=6, fig.height=3}
+# cruce entre varaibles precio y zona
+df_2 <- vivienda_faltantes %>% group_by(zona) %>% summarise(mean_price = mean(preciom, na.rm = TRUE)) %>% arrange(-mean_price)
+df_2
+# Gráfico 
+ggplot(df_2, aes(x = reorder(zona, -mean_price), y = mean_price)) + geom_bar(stat = "identity", fill = "pink", color = "black", alpha = 0.7, na.rm = TRUE) +
+  labs(title = "Promedio de precio por Zona", x = "Zona", y = "Promedio de precio") + theme_minimal()
+
+# cruce entre varaibles zona y estrato
+df_3 <-vivienda_faltantes %>% group_by(zona) %>% summarise(median_estrato = median(estrato, na.rm = TRUE)) %>% arrange(-median_estrato) 
+df_3
+# Gráfico
+ggplot(df_3, aes(x = reorder(zona, -median_estrato), y = median_estrato)) + geom_bar(stat = "identity", fill = "darkgreen", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Mediana de estrato por Zona", x = "Zona", y = "Mediana de estrato") + theme_minimal()
+```
+
+#### Cruces calculados pero no graficados 
+
+```{r echo=FALSE}
+# cruce de variables calculadas pero no graficadas
+
+vivienda_faltantes %>% group_by(estrato) %>% summarise(mean_price = mean(preciom, na.rm = TRUE)) %>% arrange(-mean_price) 
+
+vivienda_faltantes %>% group_by(zona) %>% summarise(mean_areaconst= mean(areaconst, na.rm = TRUE)) %>% arrange(-mean_areaconst)
+
+vivienda_faltantes %>% group_by(estrato) %>% summarise(mean_areaconst= mean(areaconst, na.rm = TRUE)) %>% arrange(-mean_areaconst)
+```
+
+# Conclusiones
+
+-   La base de datos tienen 4279 valores en estado NA lo que puede afectar un análisis precio. Se debe considerar la causa de estos datos faltantes y cómo deben ser tratados para análisis futuros.
+
+-   La mayoría de las viviendas en Cali son apartamentos (61%), lo que puede indicar que Cali es una ciudad con medio-alto grado de urbanización.
+
+-   La Zona Oeste tiene el promedio más alto de precio (679), el promedio más alto en área construida (197) y la mediana de estrato más alta (6), lo que indica que es una zona de mayor nivel socioeconómico en comparación con otras zonas.
+
+-   La mayoría de las viviendas están en la Zona Sur (4726), lo que podría indicar que esta área es un centro de desarrollo o popularidad, esta es adicional a segunda zona con promedio de precios (427).
+
+-   En promedio, las casas en Cali tienen 58% más área construida que los apartamentos (273 en casa vs 113 en apartamento).
+
+-   En promedio, las casas en Cali tienen un precio 31% más alto que el precio de los apartamentos (540 para las casas vs 368 para los apartamentos).
+
+# Anexo
+
+Descripcion del codigo en R.
+
+```{r eval=FALSE}
+# Cargar el paquete necesario
+library(paqueteMET) 
+data(vivienda_faltantes)
+
+# instalación de libreria
+library(dplyr)
+library(moments)
+library(naniar)
+library(ggplot2)
+library(tidyverse)
+
+#Revision de variables presente en la base de datos
+columnas <- names(vivienda_faltantes)
+columnas
+
+# Calcular el número de valores NA en cada variable
+gg_miss_var(vivienda_faltantes)
+na_count <- colSums(is.na(vivienda_faltantes))
+na_count
+
+# identificar la subdivisión de las variables zona, piso, estrato, parqueadero, baños, habitaciones.
+Uzona <- unique(vivienda_faltantes$zona) 
+Upiso <- unique(vivienda_faltantes$piso) 
+Uestrato <- unique(vivienda_faltantes$estrato) 
+Uparquead <- unique(vivienda_faltantes$parquea) 
+Ubanios <- unique(vivienda_faltantes$banios) 
+Ubanios <- unique(vivienda_faltantes$banios)
+Utipo <- unique(vivienda_faltantes$tipo)
+
+Subdiv <- list(Uzona = Uzona, Upiso = Upiso, Uestrato = Uestrato, Uparquead = Uparquead, Ubanios = Ubanios, Utipo = Utipo)
+Subdiv
+
+# Estandarizar los valores de la variable "tipo"
+vivienda_faltantes <- vivienda_faltantes %>% mutate(tipo = recode(tipo, "Apartamento" = "apartamento", "APARTAMENTO" = "apartamento", "apto" = "apartamento", "Casa" = "casa", "casa" = "casa", "CASA" = "casa", "NA" = "NA"))
+
+# Verificar los cambios de la variable tipo
+unique(vivienda_faltantes$tipo)
+
+#grafico pie de variable tipo
+data_pie <- round(table(vivienda_faltantes$tipo) %>% prop.table()*100, 2) 
+etiquetas_pie <- paste(vivienda_faltantes$tipo,"(", table(vivienda_faltantes$tipo), "-", data_pie, "%", ")" )
+pie(data_pie, label=etiquetas_pie)
+
+#Grafico de barra variable zona
+ggplot(vivienda_faltantes, aes(x = zona)) + geom_bar(fill = "orange", color = "black", alpha = 0.7) + geom_text(stat='count', aes(label=after_stat(count)), vjust=-0.5) + theme_minimal() + labs(title = "Número de viviendas por zona", x = "Zona", y = "Número de viviendas") +
+  theme(legend.position = "none")
+
+#histograma de piso
+ggplot(vivienda_faltantes, aes(x = piso)) + geom_histogram(binwidth = 1, fill = "lightgreen", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Histograma distribución de piso", x = "Piso", y = "Viviendas")
+
+#histograma de baños
+ggplot(vivienda_faltantes, aes(x = banios)) + geom_histogram(binwidth = 1, fill = "gray", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Histograma distribución de baños", x = "Baños", y = "Viviendas")
+
+#histograma de habitacion
+ggplot(vivienda_faltantes, aes(x = habitac)) + geom_histogram(binwidth = 1, fill = "darkblue", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Histograma distribución de habitación", x = "Habitacion", y = "Viviendas")
+
+# Boxplot para 'preciom'
+ggplot(vivienda_faltantes, aes(y = preciom)) + geom_boxplot(fill = "salmon", color = "black", na.rm = TRUE) + labs(title = "Boxplot variable preciom", y = "Precio")
+
+# Boxplot para 'areaconst'
+ggplot(vivienda_faltantes, aes(y = areaconst)) + geom_boxplot(fill = "green", color = "black", na.rm = TRUE) + labs(title = "Boxplot variable area construida", y = "Area construida")
+
+# Barras para 'parqueadero'
+ggplot(vivienda_faltantes, aes(x = parquea)) + geom_bar(fill = "purple", color = "black", alpha = 0.7, na.rm = TRUE) + theme_minimal() + labs(title = "Número parquederos por vivienda", x = "Parqueadero", y = "Número de viviendas")
+
+# Indicadpres de centro, dispersion y forma
+Estad_descrip <- lapply(vivienda_faltantes[, c("piso", "estrato", "preciom", "areaconst", "parquea", "banios", "habitac")], psych::describe)
+Estad_descrip
+
+#Indicador de posición:  caurtiles
+Cuartiles <- lapply(vivienda_faltantes[c("piso", "estrato", "preciom", "areaconst", "parquea", "banios", "habitac")], quantile, probs = c(0.25, 0.5, 0.75), type = 6, na.rm = TRUE) 
+Cuartiles
+
+# cruce entre varaibles precio y  tipo 
+df_1 <-vivienda_faltantes %>% group_by(tipo) %>% summarise(mean_price = mean(preciom, na.rm = TRUE)) %>% arrange(-mean_price)
+df_1
+# Gráfico 
+ggplot(df_1, aes(x = reorder(tipo, -mean_price), y = mean_price)) + geom_bar(stat = "identity", fill = "darkblue", color = "black", alpha = 0.7, na.rm = TRUE) +
+  labs(title = "Promedio de precio por tipo de vivienda", x = "Tipo", y = "Promedio de precio") + theme_minimal()
+
+# cruce entre varaibles precio y zona
+df_2 <- vivienda_faltantes %>% group_by(zona) %>% summarise(mean_price = mean(preciom, na.rm = TRUE)) %>% arrange(-mean_price)
+df_2
+# Gráfico 
+ggplot(df_2, aes(x = reorder(zona, -mean_price), y = mean_price)) + geom_bar(stat = "identity", fill = "pink", color = "black", alpha = 0.7, na.rm = TRUE) +
+  labs(title = "Promedio de precio por zona", x = "Zona", y = "Promedio de precio") + theme_minimal()
+
+# cruce entre varaibles zona y estrato
+df_3 <-vivienda_faltantes %>% group_by(zona) %>% summarise(median_estrato = median(estrato, na.rm = TRUE)) %>% arrange(-median_estrato) 
+df_3
+# Gráfico
+ggplot(df_3, aes(x = reorder(zona, -median_estrato), y = median_estrato)) + geom_bar(stat = "identity", fill = "darkgreen", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Mediana de estrato por Zona", x = "zona", y = "Mediana de estrato") + theme_minimal()
+
+# cruce entre varaibles tipo y area construida
+df_4 <- vivienda_faltantes %>% group_by(tipo) %>% summarise(mean_areaconst= mean(areaconst, na.rm = TRUE)) %>% arrange(-mean_areaconst)
+df_4
+# Gráfico
+ggplot(df_4, aes(x = reorder(tipo, -mean_areaconst), y = mean_areaconst)) + geom_bar(stat = "identity", fill = "purple", color = "black", alpha = 0.7, na.rm = TRUE) + labs(title = "Promedio de area construida por tipo de vivienda", x = "Tipo de vivienda", y = "Media de area construida") + theme_minimal()
+
+# cruce de variables calculadas pero no graficadas
+vivienda_faltantes %>% group_by(estrato) %>% summarise(mean_price = mean(preciom, na.rm = TRUE)) %>% arrange(-mean_price) 
+
+vivienda_faltantes %>% group_by(zona) %>% summarise(mean_areaconst= mean(areaconst, na.rm = TRUE)) %>% arrange(-mean_areaconst)
+
+vivienda_faltantes %>% group_by(estrato) %>% summarise(mean_areaconst= mean(areaconst, na.rm = TRUE)) %>% arrange(-mean_areaconst)
+```
